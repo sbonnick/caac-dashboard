@@ -1,0 +1,6 @@
+{
+  "name": "caac-dashboard",
+  "short_name": "caac-dashboard",
+  "start_url": "/",
+  "display": "standalone"
+}

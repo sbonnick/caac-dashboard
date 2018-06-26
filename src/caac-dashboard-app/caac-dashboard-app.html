@@ -1,0 +1,337 @@
+<link rel="import" href="../../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../../bower_components/agile-webcomponents/agile-process-control.html">
+<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="../../bower_components/paper-card/paper-card.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout.html">
+<link rel="import" href="../../bower_components/caac-webcomponents/user-story-data.html">
+<link rel="import" href="../../bower_components/caac-webcomponents/user-story-statistics.html">
+<link rel="import" href="../../bower_components/caac-webcomponents/user-story-statistics-reduced-and-pivoted.html">
+<link rel="import" href="../../bower_components/moment-import/moment-import.html">
+<link rel="import" href="../../bower_components/moment-import/moment-weekday-calc-import.html">
+<link rel="import" href="../../bower_components/paper-styles/typography.html">
+<link rel="import" href="../../bower_components/google-chart/google-chart.html">
+<link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../../bower_components/paper-menu-button/paper-menu-button.html">
+<link rel="import" href="../../bower_components/paper-listbox/paper-listbox.html">
+<link rel="import" href="../../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../../bower_components/flex-metric/flex-metric.html">
+<link rel="import" href="../../bower_components/vaadin-grid/vaadin-grid.html">
+<link rel="import" href="../../bower_components/vaadin-grid/vaadin-grid-column-group.html">
+<link rel="import" href="envar-component.html">
+
+<dom-module id="caac-dashboard-app">
+  <template>
+    <style include="iron-flex iron-flex-alignment"></style>
+    <style>
+      agile-process-control {
+        width: 640px;
+        padding: 0px 40px 0px 40px;
+      }
+      .flexchild {
+        @apply --layout-flex;
+      }
+      .header {
+        @apply --paper-font-subhead;
+        font-weight: bold;
+        padding-right: 10px;
+      }
+      .subheader {
+        @apply --paper-font-subhead;
+        color: var(--secondary-text-color);
+      }
+      .section {
+        padding-top: 20px;
+      }
+      .safewidth {
+        width: 700px;
+      }
+      flex-metric {
+        padding: 10px;
+        width: 160px;
+      }
+      #processControl {
+        height: 160px;
+        width: 460px;
+        padding: 0px 40px 0px 40px;
+      }
+
+      .featureGraph {
+        height: 200px;
+        width: 600px;
+        padding: 0px 40px 20px 40px;
+      }
+
+    </style>
+
+    <envar-component env="{{env}}"></envar-component>
+
+    <user-story-data
+      proxy="[[env.uri]]"
+      items="[[env.workitems]]"
+      data="{{data}}">
+    </user-story-data>
+
+    <user-story-statistics
+      data="[[data]]"
+      aggregates="[[env.aggregates]]"
+      stats="{{stats}}">
+    </user-story-statistics>
+
+    <user-story-statistics-reduced-and-pivoted
+      stats="[[stats]]"
+      reduce-weeks=12
+      reduced-data="{{reducedData}}">
+    </user-story-statistics-reduced-and-pivoted>
+
+    <div class="layout horizontal center-center wrap block">
+      <div class="layout vertical">
+        
+        <div class="section layout horizontal">
+          <div class="header">12 Week Accepted Story Summary by (Cycle Time)</div>
+          <div class="subheader"> - Percent of Total Effort</div>
+        </div>
+        <div class="layout horizontal">
+          <template is="dom-repeat" items="[[_metricStats]]">
+            <flex-metric
+              label="{{item.label}}"
+              value-label="Days"
+              percent-label="Effort"
+              value-key="count"
+              total-key="countTotal"
+              data="{{item.data}}">
+            </flex-metric>
+          </template>
+        </div>
+
+        <div class="section layout horizontal">
+          <div class="header">12 Week Accepted Story Summary (Story Count)</div>
+          <div class="subheader"> - Percent of Total Effort</div>
+        </div>
+        <div class="layout horizontal">
+          <template is="dom-repeat" items="[[_metricStats]]">
+            <flex-metric
+              label="{{item.label}}"
+              value-label="Stories"
+              percent-label="Effort"
+              value-key="cycle"
+              total-key="cycleTotal"
+              data="{{item.data}}">
+            </flex-metric>
+          </template>
+        </div>
+
+        <div class="section layout horizontal">
+          <div class="header">Accepted Story Histogram (Cycle Time)</div>
+          <div class="subheader"> - Delivery Confidence</div>
+        </div>
+        <div class="layout horizontal">
+            
+          <google-chart id="processControl" 
+            type="histogram" 
+            events='["onmouseover", "onmouseout"]'>
+          </google-chart>
+          <flex-metric
+            value="{{_cycleMetric.value}}"
+            value-label="Days"
+            percent="{{_cycleMetric.percent}}"
+            percent-label="Confidence">
+          </flex-metric>
+        </div>
+        
+        <template is="dom-repeat" items="[[_topicGraphData]]">
+          <div class="section layout horizontal">
+            <div class="header">[[item.header]]</div>
+            <div class="subheader">[[item.subheader]]</div>
+          </div>
+          <div class="layout horizontal">
+            <google-chart class="featureGraph"
+              type="column"
+              options='[[_topicChartFormat]]'
+              data='[[item.data]]'
+              events='["onmouseover", "onmouseout"]'>
+            </google-chart>
+          </div>
+      </template>
+
+      <!--<agile-process-control data={{graphData}}></agile-process-control>-->
+
+      </div>
+    </div>
+    
+  </template>
+
+  <script>
+    /**
+     * @customElement
+     * @polymer
+     */
+    class CaacDashboardApp extends Polymer.Element {
+      static get is() { return 'caac-dashboard-app'; }
+      static get properties() {
+        return {
+          env: Object,
+          data: Array,
+          stats: Object,
+          reducedData: Object,
+          graphData: {
+            type: Array,
+            value: []
+          },
+          _metricStats: {
+            type: Array,
+            value: []
+          },
+          _cycleMetric: Array,
+          _topicChartFormat: {
+            type: Object,
+            value: {
+              isStacked: 'true',
+              legend: 'none',
+              axisTitlesPosition: 'none',
+              chartArea: {width: '100%', top:20, left:40},
+              bar: { groupWidth: '85%' },
+              hAxis: {slantedText: true}
+            }
+          },
+          _topicGraphData: {
+            type: Array,
+            value: []
+          },
+        };
+      }
+
+      static get observers() {
+        return [
+          '_monitorData(data)',
+          '_monitorReducedData(reducedData)'
+        ]
+      }
+
+      ready() {
+        super.ready()        
+        this.$.processControl.colors=['green']
+        this.$.processControl.options={
+          legend: 'none',
+          colors: ["#737373"],
+          axisTitlesPosition: 'none',
+          chartArea: {width: '100%', top:20},
+        }
+      }
+
+      // Returns the value at a given percentile in a sorted numeric array.
+      // "Linear interpolation between closest ranks" method
+      _percentile(arr, p) {
+          if (arr.length === 0) return 0;
+          if (typeof p !== 'number') throw new TypeError('p must be a number');
+          if (p <= 0) return arr[0];
+          if (p >= 1) return arr[arr.length - 1];
+
+          var index = (arr.length -1) * p,
+              lower = Math.floor(index),
+              upper = lower + 1,
+              weight = index % 1;
+
+          if (upper >= arr.length) return arr[lower];
+          return arr[lower] * (1 - weight) + arr[upper] * weight;
+      }
+
+      // Returns the percentile of the given value in a sorted numeric array.
+      _percentRank(arr, v) {
+          if (typeof v !== 'number') throw new TypeError('v must be a number');
+          for (var i = 0, l = arr.length; i < l; i++) {
+              if (v <= arr[i]) {
+                  while (i < l && v === arr[i]) i++;
+                  if (i === 0) return 0;
+                  if (v !== arr[i-1]) {
+                      i += (v - arr[i-1]) / (arr[i] - arr[i-1]);
+                  }
+                  return i / l;
+              }
+          }
+          return 1;
+      }
+
+      _monitorData(data) {
+        if (data == null) return
+
+        //TODO: Rewrite this function. most of this is now dead code or can be done nativly from the statistics or pivoted data
+
+        var revisedData = [];
+        var histoData = [['label', 'cycle time']]
+        var cycleList = []
+        data.forEach(function(element) {
+          if (element.AcceptedDate !== null) {
+            var cycle = moment().weekdayCalc(element.InProgressDate, element.AcceptedDate, [1,2,3,4,5])
+            cycleList.push(cycle)
+            histoData.push([element.FormattedID, cycle])
+            revisedData.push({
+              label:element.FormattedID,
+              date: new Date(element.AcceptedDate),
+              estimated: element.PlanEstimate,
+              actual: cycle
+            })
+          }
+        }, this);
+
+        cycleList.sort((a, b) => (a - b))
+        this._cycleMetric = {
+          value: 5,
+          percent: Math.round(this._percentRank(cycleList, 5) * 100),
+          alternativeData: [
+            { value: this._percentile(cycleList, 0.65), percent: 65 },
+            { value: this._percentile(cycleList, 0.75), percent: 75 },
+            { value: this._percentile(cycleList, 0.85), percent: 85 }
+          ]
+        }
+
+        this.$.processControl.data = histoData
+        this.graphData = revisedData;
+      }    
+
+      _createTopicChartView(topic, metric) {
+        let topicIndex = Object.keys(topic)
+        let weekIndex = topic[topicIndex[0]].map(row => row.week)
+
+        let view = []
+        let header = ['week', ...topicIndex]
+        weekIndex.forEach(function (week) {
+          let weekArr = [week]
+          topicIndex.forEach(function (topicPointer) {            
+            topic[topicPointer].forEach(function (obj) {
+              if (obj.week == week) 
+                weekArr.push(obj[metric])
+              
+            })
+          })
+          view.push(weekArr)
+        })
+        view.unshift(header)
+
+        return view
+      }
+
+      _monitorReducedData(reducedData) {
+        if (reducedData == null) return
+
+        let metricStats = []
+        Object.keys(reducedData.aggregates).forEach(topic => {
+          metricStats.push({
+            data:  reducedData.aggregates[topic],
+            label: this.env.aggregates[topic].label
+          })
+        })
+        this._metricStats = metricStats
+
+        this._topicGraphData = [{
+          header:    "Accepted Story by Feature (Cycle Time)",
+          subheader: "",
+          data:      this._createTopicChartView(reducedData.features, 'cycle')
+        }]
+      }
+      
+    }
+
+    window.customElements.define(CaacDashboardApp.is, CaacDashboardApp);
+  </script>
+</dom-module>

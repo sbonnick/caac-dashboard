@@ -1,0 +1,36 @@
+<link rel="import" href="../../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
+
+<dom-module id="envar-component">
+  <template>
+    <iron-ajax id="envars"
+      auto 
+      url="env.json" 
+      handle-as="json" 
+      on-response="_responseHandler">
+    </iron-ajax>
+  </template>
+
+  <script>
+    /**
+     * @customElement
+     * @polymer
+     */
+    class envarComponent extends Polymer.Element {
+      static get is() { return 'envar-component'; }
+      static get properties() {
+        return {
+          env: {
+            type: Object,
+            notify: true,
+            readOnly: true
+          }
+        }
+      }
+      _responseHandler(response) {
+        this._setEnv(response.detail.response);
+      }
+    }
+    window.customElements.define(envarComponent.is, envarComponent);
+  </script>
+</dom-module>
