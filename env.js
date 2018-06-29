@@ -13,7 +13,7 @@ Object.keys(process.env).forEach(function(key) {
 });
 
 if (env != null) {
-    fs.writeFile(file, JSON.stringify(env), (err) => {
+    fs.writeFile(file, JSON.stringify(env), { flag: 'wx' }, (err) => {
         if (err) {
             console.error(err);
             return;
