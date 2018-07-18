@@ -1,6 +1,25 @@
 # \<caac-dashboard\>
 
+![Screenshot](images/caac_dashboard.png?raw=true "Dashboard Screenshot")
 
+## Configuring the Dashboard
+
+```json
+{
+    "uri": "http://caacproxy",
+    "workitems": ["I####", "F####"],
+    "aggregates": {
+        "devops": {
+            "any": { "tags": [ "devops", "defect" ] },
+            "label": "DevOps"
+        },
+        "por": {
+            "none": { "tags": [ "devops", "defect" ] },
+            "label": "Plan of Record"
+        }
+    }
+}
+```
 
 ## Install the Polymer-CLI
 
@@ -23,11 +42,3 @@ This will create builds of your application in the `build/` directory, optimized
 ```
 $ polymer serve build/default
 ```
-
-## Running Tests
-
-```
-$ polymer test
-```
-
-Your application is already set up to be tested via [web-component-tester](https://github.com/Polymer/web-component-tester). Run `polymer test` to run your application's test suite locally.
